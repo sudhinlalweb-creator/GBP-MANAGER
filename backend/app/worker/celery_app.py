@@ -37,5 +37,9 @@ celery_app.conf.beat_schedule = {
     "nightly-gbp-sync": {
         "task": "app.worker.google_tasks.nightly_sync_all_accounts",
         "schedule": crontab(hour=3, minute=0),
-    }
+    },
+    "nightly-keyword-tracking": {
+        "task": "app.worker.tasks.nightly_track_all_keywords",
+        "schedule": crontab(hour=4, minute=0),
+    },
 }

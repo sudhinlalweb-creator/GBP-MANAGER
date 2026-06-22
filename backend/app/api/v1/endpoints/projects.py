@@ -5,15 +5,16 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_owned_project_or_404
+from app.api.deps import get_current_organization_context, get_current_user, get_owned_project_or_404
 from app.db.session import get_db_session
 from app.models.keyword import Keyword
 from app.models.project import Project
 from app.models.target_location import TargetLocation
 from app.models.user import User
+from app.organizations.models import OrganizationMembership
 from app.schemas.keyword import KeywordCreateRequest, KeywordResponse, KeywordUpdateRequest
 from app.schemas.location import LocationCreateRequest, LocationResponse, LocationUpdateRequest
 from app.schemas.project import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
@@ -266,6 +267,35 @@ async def create_keyword(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Target location does not belong to this project.",
         )
+
+    # Enforce org-level keyword_limit: count all keywords across the user's projects.
+    from app.organizations.models import Organization
+    membership = await db_session.scalar(
+        select(OrganizationMembership).where(
+            OrganizationMembership.user_id == current_user.id,
+            OrganizationMembership.is_pending.is_(False),
+        )
+        .order_by(OrganizationMembership.created_at)
+        .limit(1)
+    )
+    if membership is not None:
+        org = await db_session.get(Organization, membership.organization_id)
+        if org is not None and org.keyword_limit is not None:
+            owned_project_ids = (
+                await db_session.scalars(
+                    select(Project.id).where(Project.owner_id == current_user.id)
+                )
+            ).all()
+            total_keywords = await db_session.scalar(
+                select(func.count(Keyword.id)).where(
+                    Keyword.project_id.in_(owned_project_ids)
+                )
+            )
+            if (total_keywords or 0) >= org.keyword_limit:
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail=f"Keyword limit of {org.keyword_limit} reached. Upgrade your plan to track more keywords.",
+                )
 
     keyword = Keyword(project_id=project.id, **payload.model_dump())
     db_session.add(keyword)

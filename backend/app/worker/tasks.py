@@ -23,6 +23,9 @@ from app.worker.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
+RANK_DROP_THRESHOLD = 5
+RANK_SPIKE_THRESHOLD = 5
+
 
 @celery_app.task(bind=True, name="app.worker.tasks.send_password_reset_email")
 def send_password_reset_email(
@@ -178,6 +181,7 @@ async def _mark_history_succeeded(
     ranking_history.completed_at = datetime.now(timezone.utc)
     session.add(ranking_history)
     await session.commit()
+    await _check_rank_change(session, ranking_history)
 
 
 async def _mark_history_failed(
@@ -219,3 +223,76 @@ def _decimal_to_float(value: Decimal | None) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+async def _check_rank_change(
+    session: AsyncSession,
+    ranking_history: RankingHistory,
+) -> None:
+    """Compare new ranking with the previous snapshot and log significant changes."""
+    previous = await session.scalar(
+        select(RankingHistory)
+        .where(
+            RankingHistory.keyword_id == ranking_history.keyword_id,
+            RankingHistory.status == "succeeded",
+            RankingHistory.id != ranking_history.id,
+        )
+        .order_by(RankingHistory.completed_at.desc().nullslast(), RankingHistory.started_at.desc())
+        .limit(1)
+    )
+    if previous is None:
+        return
+
+    new_organic = ranking_history.organic_rank
+    prev_organic = previous.organic_rank
+
+    if new_organic is not None and prev_organic is not None:
+        delta = new_organic - prev_organic
+        if delta >= RANK_DROP_THRESHOLD:
+            logger.warning(
+                "RANK DROP detected keyword_id=%s phrase=%s location=%s: %d → %d (Δ+%d)",
+                ranking_history.keyword_id,
+                ranking_history.query_keyword,
+                ranking_history.location_label,
+                prev_organic,
+                new_organic,
+                delta,
+            )
+        elif -delta >= RANK_SPIKE_THRESHOLD:
+            logger.info(
+                "RANK IMPROVEMENT detected keyword_id=%s phrase=%s location=%s: %d → %d (Δ%d)",
+                ranking_history.keyword_id,
+                ranking_history.query_keyword,
+                ranking_history.location_label,
+                prev_organic,
+                new_organic,
+                delta,
+            )
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.nightly_track_all_keywords")
+def nightly_track_all_keywords(self: object) -> dict[str, object]:
+    """Queue daily SERP tracking tasks for all active keywords."""
+    del self
+    return asyncio.run(_nightly_track_all_keywords_async())
+
+
+async def _nightly_track_all_keywords_async() -> dict[str, object]:
+    """Select all active keywords and enqueue a tracking task for each."""
+    async with AsyncSessionLocal() as session:
+        keyword_ids = (
+            await session.scalars(
+                select(Keyword.id).where(Keyword.is_active.is_(True))
+            )
+        ).all()
+
+    queued = 0
+    for keyword_id in keyword_ids:
+        try:
+            fetch_serp_data.delay(str(keyword_id))
+            queued += 1
+        except Exception:
+            logger.exception("Failed to queue SERP task for keyword_id=%s", keyword_id)
+
+    logger.info("Nightly keyword tracking: queued %d tasks", queued)
+    return {"queued": queued}
