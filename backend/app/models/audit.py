@@ -55,6 +55,9 @@ class AuditReport(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     recommendations: Mapped[Optional[list]] = mapped_column(
         JSONB(astext_type=Text()), nullable=True
     )
+    share_token: Mapped[Optional[str]] = mapped_column(
+        String(128), nullable=True, unique=True, index=True
+    )
 
     google_profile: Mapped["GoogleBusinessProfile"] = relationship(back_populates="audit_reports")
     organization: Mapped["Organization"] = relationship()

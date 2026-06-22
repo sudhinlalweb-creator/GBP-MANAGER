@@ -15,6 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
+    from app.models.agency import AgencyBranding, AgencyClientLink
     from app.models.automation import AutomationRule
 
 
@@ -64,6 +65,21 @@ class Organization(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     automation_rules: Mapped[list["AutomationRule"]] = relationship(
         back_populates="organization",
+        cascade="all, delete-orphan",
+    )
+    agency_branding: Mapped[Optional["AgencyBranding"]] = relationship(
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+    managed_clients: Mapped[list["AgencyClientLink"]] = relationship(
+        foreign_keys="AgencyClientLink.agency_org_id",
+        back_populates="agency_org",
+        cascade="all, delete-orphan",
+    )
+    managed_by_agencies: Mapped[list["AgencyClientLink"]] = relationship(
+        foreign_keys="AgencyClientLink.client_org_id",
+        back_populates="client_org",
         cascade="all, delete-orphan",
     )
 

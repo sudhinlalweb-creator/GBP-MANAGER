@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     app_name: str = "AI Local SEO Platform API"
     api_v1_prefix: str = "/api/v1"
     frontend_url: str | None = Field(default=None, alias="FRONTEND_URL")
+    api_base_url: str = Field(default="http://localhost:8000", alias="API_BASE_URL")
     secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
