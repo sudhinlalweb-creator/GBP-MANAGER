@@ -1,0 +1,51 @@
+name: Backend Render Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - "docker/backend/**"
+      - "docker/worker/**"
+      - ".github/workflows/backend-render-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      stage_name:
+        description: Optional stage label for the deployment
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    name: Trigger Backend Deploys
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger API deploy
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.RENDER_API_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${DEPLOY_HOOK_URL}" ]; then
+            echo "RENDER_API_DEPLOY_HOOK_URL is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "${DEPLOY_HOOK_URL}"
+
+      - name: Trigger worker deploy
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.RENDER_WORKER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${DEPLOY_HOOK_URL}" ]; then
+            echo "RENDER_WORKER_DEPLOY_HOOK_URL is not configured."
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "${DEPLOY_HOOK_URL}"
+
+      - name: Write summary
+        run: |
+          echo "### Backend Deployment Triggered" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Branch: ${{ github.ref_name }}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Stage: ${{ github.event.inputs.stage_name || github.ref_name }}" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- API: Render deploy hook triggered, container will run alembic upgrade head on startup" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- Worker: Render deploy hook triggered" >> "${GITHUB_STEP_SUMMARY}"

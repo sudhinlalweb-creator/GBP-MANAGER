@@ -1,0 +1,1 @@
+"""GBP Manager application package."""

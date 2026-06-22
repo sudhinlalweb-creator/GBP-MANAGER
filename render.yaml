@@ -1,0 +1,161 @@
+previews:
+  generation: manual
+
+services:
+  - type: keyvalue
+    name: gbp-manager-redis
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+  - type: web
+    runtime: docker
+    name: gbp-manager-api
+    plan: starter
+    region: singapore
+    dockerfilePath: ./docker/backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: APP_NAME
+        value: AI Local SEO Platform API
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: DATABASE_ECHO
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: ALEMBIC_DATABASE_URL
+        sync: false
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: gbp-manager-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: gbp-manager-redis
+          property: port
+      - key: REDIS_DB
+        value: "0"
+      - key: CELERY_DEFAULT_QUEUE
+        value: local-seo
+      - key: RUN_DB_MIGRATIONS_ON_START
+        value: "true"
+      - key: MIGRATION_MAX_RETRIES
+        value: "20"
+      - key: MIGRATION_RETRY_DELAY_SECONDS
+        value: "3"
+      - key: GOOGLE_BASE_URL
+        value: https://www.google.com/search
+      - key: SERP_REQUEST_TIMEOUT_SECONDS
+        value: "30.0"
+      - key: SERP_DEFAULT_LANGUAGE
+        value: en
+      - key: SERP_DEFAULT_COUNTRY
+        value: us
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: CORS_ALLOW_ORIGINS
+        sync: false
+      - key: CORS_ALLOW_ORIGIN_REGEX
+        sync: false
+
+  - type: worker
+    runtime: docker
+    name: gbp-manager-worker
+    plan: starter
+    region: singapore
+    dockerfilePath: ./docker/worker/Dockerfile
+    dockerContext: .
+    autoDeployTrigger: "off"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: APP_NAME
+        value: AI Local SEO Platform API
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"
+      - key: DATABASE_ECHO
+        value: "false"
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: gbp-manager-api
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        sync: false
+      - key: ALEMBIC_DATABASE_URL
+        sync: false
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: gbp-manager-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: gbp-manager-redis
+          property: port
+      - key: REDIS_DB
+        value: "0"
+      - key: CELERY_DEFAULT_QUEUE
+        value: local-seo
+      - key: RUN_DB_MIGRATIONS_ON_START
+        value: "false"
+      - key: GOOGLE_BASE_URL
+        value: https://www.google.com/search
+      - key: SERP_REQUEST_TIMEOUT_SECONDS
+        value: "30.0"
+      - key: SERP_DEFAULT_LANGUAGE
+        value: en
+      - key: SERP_DEFAULT_COUNTRY
+        value: us
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
