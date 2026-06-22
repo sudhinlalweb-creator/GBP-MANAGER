@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.audit import AuditReport
 
 
 class GoogleAccount(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -81,3 +84,9 @@ class GoogleBusinessProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     last_synced_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     sync_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    audit_reports: Mapped[list["AuditReport"]] = relationship(
+        back_populates="google_profile",
+        cascade="all, delete-orphan",
+        order_by="AuditReport.created_at.desc()",
+    )

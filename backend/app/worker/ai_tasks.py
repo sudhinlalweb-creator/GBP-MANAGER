@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.service import AIAuditService
 from app.db.session import AsyncSessionLocal
@@ -73,3 +74,116 @@ async def _load_context(
         membership=membership,
         user=user,
     )
+
+
+# ── Per-profile AI audit task ─────────────────────────────────────────────────
+
+@celery_app.task(bind=True, name="app.worker.ai_tasks.run_gbp_audit")
+def run_gbp_audit(
+    self: object,
+    organization_id: str,
+    google_profile_id: str,
+    requested_by_user_id: str,
+    audit_report_id: str,
+) -> dict[str, object]:
+    """Run an AI GBP audit and persist results to the audit_reports table."""
+    del self
+    return asyncio.run(
+        _run_gbp_audit_async(
+            organization_id,
+            google_profile_id,
+            requested_by_user_id,
+            audit_report_id,
+        )
+    )
+
+
+async def _run_gbp_audit_async(
+    organization_id: str,
+    google_profile_id: str,
+    requested_by_user_id: str,
+    audit_report_id: str,
+) -> dict[str, object]:
+    """Execute the AI audit inside an async session using the pre-created report row."""
+    from app.ai.audit_service import AuditService
+    from app.models.audit import AuditReport
+    from datetime import datetime, timezone
+
+    logger.info(
+        "Starting AI GBP audit for profile_id=%s report_id=%s",
+        google_profile_id,
+        audit_report_id,
+    )
+
+    service = AuditService()
+    async with AsyncSessionLocal() as db:
+        report = await db.get(AuditReport, UUID(audit_report_id))
+        if report is None:
+            raise ValueError(f"AuditReport '{audit_report_id}' was not found.")
+
+        report.status = "running"
+        report.started_at = datetime.now(timezone.utc)
+        db.add(report)
+        await db.commit()
+
+        try:
+            from app.google.models import GoogleBusinessProfile
+            from app.ai.visibility_scoring import (
+                compute_engagement_score,
+                compute_review_score,
+                compute_visibility_score,
+            )
+            from app.google.scoring import compute_completeness_score
+            from app.ai.audit_prompts import build_audit_system_prompt, build_audit_user_prompt
+            from app.ai.audit_service import _build_profile_snapshot, _call_ai
+            from sqlalchemy import select
+
+            profile = await db.scalar(
+                select(GoogleBusinessProfile).where(
+                    GoogleBusinessProfile.id == UUID(google_profile_id)
+                )
+            )
+            if profile is None:
+                raise ValueError(f"GoogleBusinessProfile '{google_profile_id}' was not found.")
+
+            completeness = compute_completeness_score(profile)
+            review_score = compute_review_score(profile.review_count, profile.average_rating)
+            engagement_score = compute_engagement_score(profile.total_photos)
+            visibility_score = compute_visibility_score(completeness, review_score, engagement_score)
+            snapshot = _build_profile_snapshot(profile, completeness, visibility_score)
+            provider, model, raw_response, recommendations = await _call_ai(snapshot)
+
+            report.completeness_score = completeness
+            report.review_score = review_score
+            report.engagement_score = engagement_score
+            report.visibility_score = visibility_score
+            report.ai_provider = provider
+            report.ai_model = model
+            report.raw_ai_response = {"response_text": raw_response}
+            report.recommendations = recommendations
+            report.status = "completed"
+            report.completed_at = datetime.now(timezone.utc)
+
+        except Exception as exc:
+            logger.exception(
+                "AI audit failed for profile_id=%s report_id=%s", google_profile_id, audit_report_id
+            )
+            report.status = "failed"
+            report.error_reason = str(exc)
+            report.completed_at = datetime.now(timezone.utc)
+
+        db.add(report)
+        await db.commit()
+
+    logger.info(
+        "Finished AI GBP audit for profile_id=%s report_id=%s status=%s",
+        google_profile_id,
+        audit_report_id,
+        report.status,
+    )
+    return {
+        "audit_report_id": audit_report_id,
+        "google_profile_id": google_profile_id,
+        "status": report.status,
+        "visibility_score": report.visibility_score,
+    }

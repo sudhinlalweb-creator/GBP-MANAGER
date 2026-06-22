@@ -16,7 +16,7 @@ class AuditProviderStatus(BaseModel):
 
 
 class AuditRecommendation(BaseModel):
-    """One actionable recommendation from the audit engine."""
+    """One actionable recommendation from the heuristic audit engine."""
 
     title: str
     priority: str
@@ -46,3 +46,67 @@ class ScoreResponse(BaseModel):
     score_name: str
     score: int
     last_audit_at: datetime
+
+
+# ── Phase 3: per-profile AI audit report schemas ──────────────────────────────
+
+class AuditRecommendationSchema(BaseModel):
+    """One AI-generated recommendation stored inside an AuditReport."""
+
+    id: str
+    priority: str
+    category: str
+    title: str
+    detail: str
+    impact_score: int
+    is_auto_fixable: bool
+    suggested_value: str | None = None
+    field_path: str | None = None
+
+
+class AuditScoreResponse(BaseModel):
+    """Per-report score breakdown response."""
+
+    report_id: UUID
+    visibility_score: int | None
+    completeness_score: int | None
+    review_score: int | None
+    engagement_score: int | None
+    score_breakdown: dict
+
+
+class AuditReportSummaryResponse(BaseModel):
+    """Lightweight audit report response without recommendations payload."""
+
+    id: UUID
+    organization_id: UUID
+    google_profile_id: UUID
+    status: str
+    visibility_score: int | None
+    completeness_score: int | None
+    review_score: int | None
+    engagement_score: int | None
+    ai_provider: str | None
+    ai_model: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    error_reason: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AuditReportResponse(AuditReportSummaryResponse):
+    """Full audit report response including AI recommendations."""
+
+    recommendations: list[AuditRecommendationSchema] = []
+    raw_ai_response: dict | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class AuditReportListResponse(BaseModel):
+    """Paginated audit report list."""
+
+    reports: list[AuditReportSummaryResponse]
+    total: int
