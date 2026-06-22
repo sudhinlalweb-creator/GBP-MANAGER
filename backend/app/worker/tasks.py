@@ -24,6 +24,52 @@ from app.worker.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+@celery_app.task(bind=True, name="app.worker.tasks.send_password_reset_email")
+def send_password_reset_email(
+    self: object,
+    email: str,
+    reset_token: str,
+) -> dict[str, str]:
+    """Log a password reset email payload for later provider integration."""
+    del self
+    logger.info(
+        "Queued password reset email for %s with token prefix %s",
+        email,
+        reset_token[:12],
+    )
+    return {"email": email, "status": "queued"}
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.send_org_invite_email")
+def send_org_invite_email(
+    self: object,
+    email: str,
+    invite_token: str,
+    org_name: str,
+) -> dict[str, str]:
+    """Log an organization invite email payload for later provider integration."""
+    del self
+    logger.info(
+        "Queued organization invite email for %s into %s with token prefix %s",
+        email,
+        org_name,
+        invite_token[:12],
+    )
+    return {"email": email, "organization": org_name, "status": "queued"}
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.send_billing_alert_email")
+def send_billing_alert_email(
+    self: object,
+    org_id: str,
+    reason: str,
+) -> dict[str, str]:
+    """Log a billing alert payload for later provider integration."""
+    del self
+    logger.info("Queued billing alert for org %s reason=%s", org_id, reason)
+    return {"org_id": org_id, "status": "queued"}
+
+
 @celery_app.task(bind=True, name="app.worker.tasks.fetch_serp_data")
 def fetch_serp_data(self: object, keyword_id: str) -> dict[str, object]:
     """Fetch, parse, and persist a localized SERP ranking snapshot for a keyword."""

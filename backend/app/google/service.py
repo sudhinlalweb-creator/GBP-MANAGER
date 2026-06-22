@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID
@@ -14,6 +15,8 @@ from app.api.deps import OrganizationContext
 from app.core.config import get_settings
 from app.google.client import GoogleBusinessProfileClient, GoogleIntegrationError, GoogleOAuthClient
 from app.google.models import GoogleAccount, GoogleBusinessProfile
+from app.google.scoring import compute_completeness_score
+from app.organizations.models import OrganizationMembership
 from app.schemas.google import (
     GoogleAccountResponse,
     GoogleBusinessProfileResponse,
@@ -22,6 +25,10 @@ from app.schemas.google import (
     GoogleOAuthConnectResponse,
     GoogleSyncResult,
 )
+from app.models.user import User
+
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleIntegrationService:
@@ -32,10 +39,7 @@ class GoogleIntegrationService:
         self.oauth_client = GoogleOAuthClient()
         self.gbp_client = GoogleBusinessProfileClient()
 
-    def build_connect_response(
-        self,
-        context: OrganizationContext,
-    ) -> GoogleOAuthConnectResponse:
+    def build_connect_response(self, context: OrganizationContext) -> GoogleOAuthConnectResponse:
         """Build a Google OAuth connect URL scoped to the current organization."""
         state = self._encode_state(
             organization_id=context.organization.id,
@@ -46,19 +50,44 @@ class GoogleIntegrationService:
             state=state,
         )
 
+    def decode_state(self, state: str) -> dict[str, str]:
+        """Decode the Google OAuth state payload for callback processing."""
+        try:
+            payload = jwt.decode(
+                state,
+                self.settings.secret_key,
+                algorithms=[self.settings.jwt_algorithm],
+            )
+        except jwt.PyJWTError as exc:
+            raise GoogleIntegrationError("Google OAuth state is invalid or expired.") from exc
+
+        if payload.get("purpose") != "google-oauth":
+            raise GoogleIntegrationError("Google OAuth state purpose is invalid.")
+        return {
+            "organization_id": str(payload["organization_id"]),
+            "user_id": str(payload["user_id"]),
+        }
+
     async def exchange_callback(
         self,
         db_session: AsyncSession,
-        context: OrganizationContext,
+        organization_id: UUID,
+        user_id: UUID,
         code: str,
-        state: str,
     ) -> GoogleAccountResponse:
         """Exchange the callback code, upsert the account, and return the safe payload."""
-        payload = self._decode_state(state)
-        if payload["organization_id"] != str(context.organization.id) or payload["user_id"] != str(
-            context.user.id
-        ):
-            raise GoogleIntegrationError("Google OAuth state does not match the active organization.")
+        membership = await db_session.scalar(
+            select(OrganizationMembership).where(
+                OrganizationMembership.organization_id == organization_id,
+                OrganizationMembership.user_id == user_id,
+            )
+        )
+        if membership is None:
+            raise GoogleIntegrationError("Google OAuth state does not match an organization membership.")
+
+        user = await db_session.get(User, user_id)
+        if user is None or not user.is_active:
+            raise GoogleIntegrationError("The Google OAuth user is inactive or missing.")
 
         tokens = await self.oauth_client.exchange_code_for_tokens(code)
         access_token = tokens.get("access_token")
@@ -77,20 +106,18 @@ class GoogleIntegrationService:
             expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
 
         statement = select(GoogleAccount).where(
-            GoogleAccount.organization_id == context.organization.id,
+            GoogleAccount.organization_id == organization_id,
             GoogleAccount.google_email == email.strip().lower(),
         )
         google_account = await db_session.scalar(statement)
-
         if google_account is None:
             google_account = GoogleAccount(
-                organization_id=context.organization.id,
+                organization_id=organization_id,
                 google_email=email.strip().lower(),
             )
             db_session.add(google_account)
 
         if isinstance(refresh_token, str) and refresh_token:
-            # Transitional storage until encrypted secret management is introduced.
             google_account.refresh_token_encrypted = refresh_token
         google_account.access_token_expires_at = expires_at.isoformat() if expires_at else None
 
@@ -115,7 +142,7 @@ class GoogleIntegrationService:
             )
         )
         last_profile_sync_at = await db_session.scalar(
-            select(func.max(GoogleBusinessProfile.updated_at)).where(
+            select(func.max(GoogleBusinessProfile.last_synced_at)).where(
                 GoogleBusinessProfile.organization_id == context.organization.id,
             )
         )
@@ -158,7 +185,7 @@ class GoogleIntegrationService:
                 await db_session.execute(
                     select(GoogleBusinessProfile)
                     .where(GoogleBusinessProfile.organization_id == context.organization.id)
-                    .order_by(GoogleBusinessProfile.updated_at.desc())
+                    .order_by(GoogleBusinessProfile.last_synced_at.desc().nullslast())
                     .limit(20)
                 )
             )
@@ -166,7 +193,7 @@ class GoogleIntegrationService:
             .all()
         )
         linked_locations = sum(1 for profile in profiles if profile.location_id is not None)
-        last_profile_sync_at = max((profile.updated_at for profile in profiles), default=None)
+        last_profile_sync_at = max((profile.last_synced_at for profile in profiles), default=None)
 
         return GoogleDashboardResponse(
             organization_id=context.organization.id,
@@ -242,23 +269,6 @@ class GoogleIntegrationService:
             algorithm=self.settings.jwt_algorithm,
         )
 
-    def _decode_state(self, state: str) -> dict[str, str]:
-        try:
-            payload = jwt.decode(
-                state,
-                self.settings.secret_key,
-                algorithms=[self.settings.jwt_algorithm],
-            )
-        except jwt.PyJWTError as exc:
-            raise GoogleIntegrationError("Google OAuth state is invalid or expired.") from exc
-
-        if payload.get("purpose") != "google-oauth":
-            raise GoogleIntegrationError("Google OAuth state purpose is invalid.")
-        return {
-            "organization_id": str(payload["organization_id"]),
-            "user_id": str(payload["user_id"]),
-        }
-
     async def _count_profiles(self, db_session: AsyncSession, organization_id: UUID) -> int:
         count = await db_session.scalar(
             select(func.count(GoogleBusinessProfile.id)).where(
@@ -275,6 +285,7 @@ class GoogleIntegrationService:
         locations: list[dict[str, Any]],
     ) -> int:
         upserted = 0
+        now = datetime.now(timezone.utc)
         for location in locations:
             title = location.get("title")
             if not isinstance(title, str) or not title.strip():
@@ -286,12 +297,6 @@ class GoogleIntegrationService:
                 GoogleBusinessProfile.google_location_name == title.strip(),
             )
             profile = await db_session.scalar(statement)
-            primary_category = location.get("primaryCategory", {})
-            category_name = None
-            if isinstance(primary_category, dict):
-                category_name = primary_category.get("displayName")
-            website_url = location.get("websiteUri")
-
             if profile is None:
                 profile = GoogleBusinessProfile(
                     organization_id=organization_id,
@@ -300,8 +305,141 @@ class GoogleIntegrationService:
                 )
                 db_session.add(profile)
 
-            profile.primary_category = category_name if isinstance(category_name, str) else None
-            profile.website_url = website_url if isinstance(website_url, str) else None
+            primary_category = location.get("primaryCategory")
+            phone_numbers = location.get("phoneNumbers")
+            storefront_address = location.get("storefrontAddress")
+            latlng = location.get("latlng")
+            metadata = location.get("metadata")
+            profile_data = location.get("profile")
+
+            profile.google_location_name = title.strip()
+            profile.primary_category = self._coerce_str(
+                primary_category.get("displayName") if isinstance(primary_category, dict) else None
+            )
+            profile.website_url = self._coerce_str(location.get("websiteUri"))
+            profile.store_code = self._coerce_str(location.get("storeCode"))
+            profile.phone_number = self._coerce_str(
+                phone_numbers.get("primaryPhone") if isinstance(phone_numbers, dict) else None
+            )
+            profile.address_street = self._extract_address_street(storefront_address)
+            profile.address_city = self._coerce_str(
+                storefront_address.get("locality") if isinstance(storefront_address, dict) else None
+            )
+            profile.address_state = self._coerce_str(
+                storefront_address.get("administrativeArea")
+                if isinstance(storefront_address, dict)
+                else None
+            )
+            profile.address_postal_code = self._coerce_str(
+                storefront_address.get("postalCode") if isinstance(storefront_address, dict) else None
+            )
+            profile.address_country_code = self._coerce_str(
+                storefront_address.get("regionCode") if isinstance(storefront_address, dict) else None
+            )
+            profile.address_formatted = self._build_formatted_address(storefront_address)
+            profile.latitude = self._coerce_float(
+                latlng.get("latitude") if isinstance(latlng, dict) else None
+            )
+            profile.longitude = self._coerce_float(
+                latlng.get("longitude") if isinstance(latlng, dict) else None
+            )
+            profile.maps_url = self._coerce_str(
+                metadata.get("mapsUri") if isinstance(metadata, dict) else None
+            )
+            profile.is_verified = self._coerce_bool(
+                metadata.get("isVerified") if isinstance(metadata, dict) else None
+            )
+            profile.is_suspended = self._coerce_bool(
+                metadata.get("isSuspended") if isinstance(metadata, dict) else None
+            )
+            profile.is_disconnected = False
+            profile.review_count = self._coerce_int(
+                self._nested_get(metadata, "reviewCount")
+                or self._nested_get(profile_data, "reviewCount")
+                or location.get("reviewCount")
+            )
+            profile.average_rating = self._coerce_float(
+                self._nested_get(metadata, "averageRating")
+                or self._nested_get(profile_data, "averageRating")
+                or location.get("averageRating")
+            )
+            profile.total_photos = self._coerce_int(
+                self._nested_get(metadata, "totalPhotos")
+                or self._nested_get(profile_data, "totalPhotos")
+                or location.get("totalPhotos")
+            )
+            profile.raw_api_data = location
+            profile.completeness_score = compute_completeness_score(profile)
+            profile.last_synced_at = now
+            profile.sync_error = None
             upserted += 1
 
         return upserted
+
+    @staticmethod
+    def _coerce_str(value: Any) -> str | None:
+        return value.strip() if isinstance(value, str) and value.strip() else None
+
+    @staticmethod
+    def _coerce_int(value: Any) -> int | None:
+        if value is None or value == "":
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            logger.debug("Unable to coerce integer from GBP value %r", value)
+            return None
+
+    @staticmethod
+    def _coerce_float(value: Any) -> float | None:
+        if value is None or value == "":
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            logger.debug("Unable to coerce float from GBP value %r", value)
+            return None
+
+    @staticmethod
+    def _coerce_bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes"}
+        return bool(value)
+
+    @staticmethod
+    def _nested_get(value: Any, key: str) -> Any:
+        if isinstance(value, dict):
+            return value.get(key)
+        return None
+
+    @classmethod
+    def _extract_address_street(cls, storefront_address: Any) -> str | None:
+        if not isinstance(storefront_address, dict):
+            return None
+        address_lines = storefront_address.get("addressLines")
+        if isinstance(address_lines, list) and address_lines:
+            first_line = address_lines[0]
+            return cls._coerce_str(first_line)
+        return None
+
+    @classmethod
+    def _build_formatted_address(cls, storefront_address: Any) -> str | None:
+        if not isinstance(storefront_address, dict):
+            return None
+        address_lines = storefront_address.get("addressLines")
+        parts: list[str] = []
+        if isinstance(address_lines, list):
+            parts.extend(
+                line.strip()
+                for line in address_lines
+                if isinstance(line, str) and line.strip()
+            )
+        for key in ("locality", "administrativeArea", "postalCode", "regionCode"):
+            value = storefront_address.get(key)
+            if isinstance(value, str) and value.strip():
+                parts.append(value.strip())
+        if not parts:
+            return None
+        return ", ".join(parts)

@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     app_name: str = "AI Local SEO Platform API"
     api_v1_prefix: str = "/api/v1"
+    frontend_url: str | None = Field(default=None, alias="FRONTEND_URL")
     secret_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
@@ -45,6 +46,9 @@ class Settings(BaseSettings):
     google_maps_api_key: str | None = None
     stripe_secret_key: str | None = None
     stripe_webhook_secret: str | None = None
+    stripe_price_id_starter: str | None = None
+    stripe_price_id_pro: str | None = None
+    stripe_price_id_agency: str | None = None
     openai_api_key: str | None = None
     google_api_key: str | None = None
     sentry_dsn: str | None = None

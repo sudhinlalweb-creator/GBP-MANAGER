@@ -132,7 +132,13 @@ class GoogleBusinessProfileClient:
                 "websiteUri",
                 "primaryCategory",
                 "storeCode",
+                "phoneNumbers",
+                "storefrontAddress",
+                "latlng",
                 "metadata",
+                "regularHours",
+                "specialHours",
+                "profile",
             ]
         )
         url = f"{self.business_information_base_url}/{account_name}/locations"

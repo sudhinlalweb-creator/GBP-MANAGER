@@ -1,6 +1,7 @@
 """Celery application bootstrap for background SERP jobs."""
 
 from celery import Celery
+from celery.schedules import crontab
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
@@ -31,3 +32,10 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
 )
+
+celery_app.conf.beat_schedule = {
+    "nightly-gbp-sync": {
+        "task": "app.worker.google_tasks.nightly_sync_all_accounts",
+        "schedule": crontab(hour=3, minute=0),
+    }
+}

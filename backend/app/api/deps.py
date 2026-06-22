@@ -6,18 +6,19 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_access_token
+from app.core.security import decode_token
 from app.db.session import get_db_session
 from app.models.project import Project
 from app.models.user import User
 from app.organizations.models import Organization, OrganizationMembership
 
 
-bearer_scheme = HTTPBearer(auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+PLAN_ORDER = {"trial": 0, "starter": 1, "pro": 2, "agency": 3}
 
 
 @dataclass
@@ -29,37 +30,46 @@ class OrganizationContext:
     user: User
 
 
+async def get_db():
+    """Yield an async database session for request-scoped dependencies."""
+    async for session in get_db_session():
+        yield session
+
+
 async def get_current_user(
-    db_session: AsyncSession = Depends(get_db_session),
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Return the authenticated user extracted from the bearer token."""
-    if credentials is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication credentials were not provided.",
-        )
-
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_token(token)
         user_id = UUID(payload["sub"])
-    except (ValueError, KeyError) as exc:
+    except (KeyError, ValueError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication token.",
+            headers={"WWW-Authenticate": "Bearer"},
         ) from exc
 
-    user = await db_session.get(User, user_id)
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Access token required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = await db.get(User, user_id)
     if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authenticated user is inactive or missing.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
     return user
 
 
-async def get_current_superuser(
+async def get_current_active_superuser(
     current_user: User = Depends(get_current_user),
 ) -> User:
     """Return the authenticated user only when they have superuser access."""
@@ -72,22 +82,37 @@ async def get_current_superuser(
     return current_user
 
 
+async def get_current_superuser(
+    current_user: User = Depends(get_current_active_superuser),
+) -> User:
+    """Backward-compatible alias for the admin endpoints."""
+    return current_user
+
+
 async def get_current_organization_context(
-    db_session: AsyncSession = Depends(get_db_session),
+    org_id: UUID | None = None,
+    db_session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> OrganizationContext:
-    """Return the first organization membership for the authenticated user."""
+    """Return the requested organization membership or fall back to the first tenant."""
     statement = (
         select(OrganizationMembership, Organization)
         .join(Organization, OrganizationMembership.organization_id == Organization.id)
         .where(OrganizationMembership.user_id == current_user.id)
-        .order_by(OrganizationMembership.created_at.asc())
     )
+    if org_id is not None:
+        statement = statement.where(OrganizationMembership.organization_id == org_id)
+
+    statement = statement.order_by(OrganizationMembership.created_at.asc())
     row = (await db_session.execute(statement)).first()
     if row is None:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="The authenticated user is not assigned to an organization.",
+            status_code=status.HTTP_404_NOT_FOUND if org_id is not None else status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Organization was not found."
+                if org_id is not None
+                else "The authenticated user is not assigned to an organization."
+            ),
         )
 
     membership, organization = row
@@ -96,6 +121,29 @@ async def get_current_organization_context(
         membership=membership,
         user=current_user,
     )
+
+
+def require_plan(min_plan: str):
+    """Return a dependency that enforces a minimum tenant subscription tier."""
+    normalized_min_plan = min_plan.strip().lower()
+    if normalized_min_plan not in PLAN_ORDER:
+        raise ValueError(f"Unsupported plan requirement '{min_plan}'.")
+
+    async def _require_plan(
+        context: OrganizationContext = Depends(get_current_organization_context),
+    ) -> OrganizationContext:
+        current_plan = context.organization.subscription_tier.strip().lower()
+        if PLAN_ORDER.get(current_plan, -1) < PLAN_ORDER[normalized_min_plan]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    f"The '{normalized_min_plan}' plan or higher is required "
+                    "for this resource."
+                ),
+            )
+        return context
+
+    return _require_plan
 
 
 async def get_owned_project_or_404(

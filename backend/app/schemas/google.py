@@ -46,6 +46,25 @@ class GoogleBusinessProfileResponse(BaseModel):
     google_location_name: str
     primary_category: str | None
     website_url: str | None
+    store_code: str | None
+    phone_number: str | None
+    address_formatted: str | None
+    address_street: str | None
+    address_city: str | None
+    address_state: str | None
+    address_postal_code: str | None
+    address_country_code: str | None
+    latitude: float | None
+    longitude: float | None
+    maps_url: str | None
+    is_verified: bool
+    is_suspended: bool
+    review_count: int | None
+    average_rating: float | None
+    total_photos: int | None
+    completeness_score: int | None
+    last_synced_at: datetime | None
+    sync_error: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -55,9 +74,8 @@ class GoogleBusinessProfileResponse(BaseModel):
 class GoogleSyncAcceptedResponse(BaseModel):
     """Response returned when a sync job is queued."""
 
+    message: str
     task_id: str
-    status: str
-    google_account_id: UUID
 
 
 class GoogleIntegrationStatusResponse(BaseModel):
@@ -96,3 +114,10 @@ class GoogleSyncResult(BaseModel):
     accounts_fetched: int
     profiles_synced: int
     raw_accounts: list[dict[str, Any]]
+
+
+class ProfileListResponse(BaseModel):
+    """Paginated organization-scoped Google Business Profile list."""
+
+    profiles: list[GoogleBusinessProfileResponse]
+    total: int

@@ -6,8 +6,11 @@ import asyncio
 import logging
 from uuid import UUID
 
+from sqlalchemy import select
+
 from app.db.session import AsyncSessionLocal
 from app.google.client import GoogleIntegrationError
+from app.google.models import GoogleAccount
 from app.google.service import GoogleIntegrationService
 from app.worker.celery_app import celery_app
 
@@ -15,18 +18,18 @@ from app.worker.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(bind=True, name="app.worker.google_tasks.sync_google_account_profiles")
-def sync_google_account_profiles(
+@celery_app.task(bind=True, name="app.worker.google_tasks.sync_google_account_task")
+def sync_google_account_task(
     self: object,
     organization_id: str,
     google_account_id: str,
 ) -> dict[str, object]:
     """Sync Google Business Profiles for one connected Google account."""
     del self
-    return asyncio.run(_sync_google_account_profiles_async(organization_id, google_account_id))
+    return asyncio.run(_sync_async(organization_id, google_account_id))
 
 
-async def _sync_google_account_profiles_async(
+async def _sync_async(
     organization_id: str,
     google_account_id: str,
 ) -> dict[str, object]:
@@ -58,4 +61,37 @@ async def _sync_google_account_profiles_async(
         organization_id,
         google_account_id,
     )
-    return result.model_dump(mode="json")
+    return {
+        "organization_id": organization_id,
+        "google_account_id": google_account_id,
+        "accounts_fetched": result.accounts_fetched,
+        "profiles_synced": result.profiles_synced,
+    }
+
+
+@celery_app.task(bind=True, name="app.worker.google_tasks.nightly_sync_all_accounts")
+def nightly_sync_all_accounts(self: object) -> dict[str, int]:
+    """Enqueue individual sync tasks for every connected Google account."""
+    del self
+    return asyncio.run(_nightly_sync_async())
+
+
+async def _nightly_sync_async() -> dict[str, int]:
+    """Queue a sync task for every connected Google account."""
+    accounts_queued = 0
+    async with AsyncSessionLocal() as db_session:
+        accounts = (
+            (await db_session.execute(select(GoogleAccount)))
+            .scalars()
+            .all()
+        )
+        for account in accounts:
+            celery_app.send_task(
+                "app.worker.google_tasks.sync_google_account_task",
+                kwargs={
+                    "organization_id": str(account.organization_id),
+                    "google_account_id": str(account.id),
+                },
+            )
+            accounts_queued += 1
+    return {"accounts_queued": accounts_queued}
