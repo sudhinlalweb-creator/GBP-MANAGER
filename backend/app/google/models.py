@@ -15,6 +15,8 @@ from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.audit import AuditReport
+    from app.models.post import GBPPost
+    from app.models.review import GBPReview
 
 
 class GoogleAccount(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -89,4 +91,14 @@ class GoogleBusinessProfile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="google_profile",
         cascade="all, delete-orphan",
         order_by="AuditReport.created_at.desc()",
+    )
+    reviews: Mapped[list["GBPReview"]] = relationship(
+        back_populates="google_profile",
+        cascade="all, delete-orphan",
+        order_by="GBPReview.review_time.desc()",
+    )
+    posts: Mapped[list["GBPPost"]] = relationship(
+        back_populates="google_profile",
+        cascade="all, delete-orphan",
+        order_by="GBPPost.created_at.desc()",
     )

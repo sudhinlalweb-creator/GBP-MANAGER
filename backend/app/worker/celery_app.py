@@ -18,6 +18,8 @@ celery_app = Celery(
         "app.worker.ai_tasks",
         "app.worker.google_tasks",
         "app.worker.heatmap_tasks",
+        "app.worker.post_tasks",
+        "app.worker.review_tasks",
         "app.worker.tasks",
     ],
 )
@@ -41,5 +43,13 @@ celery_app.conf.beat_schedule = {
     "nightly-keyword-tracking": {
         "task": "app.worker.tasks.nightly_track_all_keywords",
         "schedule": crontab(hour=4, minute=0),
+    },
+    "nightly-review-sync": {
+        "task": "app.worker.review_tasks.nightly_sync_all_reviews",
+        "schedule": crontab(hour=5, minute=0),
+    },
+    "hourly-scheduled-posts": {
+        "task": "app.worker.post_tasks.publish_scheduled_posts",
+        "schedule": crontab(minute=0),
     },
 }
