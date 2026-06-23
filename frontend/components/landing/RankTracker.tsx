@@ -99,7 +99,7 @@ export function RankTracker() {
   }, [scanning])
 
   return (
-    <section style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 24px 0" }}>
+    <section className="landing-section">
       <div style={{ maxWidth: 680, marginBottom: 40 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#ff5600", marginBottom: 14 }}>Rank tracker</div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", lineHeight: 1.1, letterSpacing: "-1.2px", fontWeight: 600 }}>
@@ -111,7 +111,7 @@ export function RankTracker() {
       </div>
 
       <div style={{ background: "#fff", border: "1px solid #d3cec6", borderRadius: 16, padding: 28 }}>
-        <div style={{ display: "flex", gap: 10, marginBottom: 22, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="landing-rank-controls" style={{ gap: 10, marginBottom: 22, flexWrap: "wrap" }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: "#7b7b78", display: "inline-flex", alignItems: "center", gap: 7 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9c9fa5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 21s7-6.16 7-12A7 7 0 0 0 5 9c0 5.84 7 12 7 12Z"/><circle cx="12" cy="9" r="2.4"/>
@@ -140,7 +140,7 @@ export function RankTracker() {
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 28, alignItems: "stretch" }}>
+        <div className="landing-rank-grid">
           {/* Map + grid */}
           <div style={{ position: "relative", width: "100%", aspectRatio: "1.6/1", borderRadius: 12, overflow: "hidden", border: "1px solid #e3ddd4", background: "#eef0ec" }}>
             <svg viewBox="0 0 520 356" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>

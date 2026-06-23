@@ -8,7 +8,7 @@ export function CtaFooter() {
   return (
     <>
       {/* Final CTA */}
-      <section style={{ maxWidth: 1200, margin: "0 auto", padding: "96px 24px" }}>
+      <section className="landing-section" style={{ paddingTop: 96, paddingBottom: 32 }}>
         <div style={{ background: "#111", color: "#fff", borderRadius: 24, padding: "72px 32px", textAlign: "center", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(600px 300px at 50% -10%, rgba(255,86,0,.18), transparent 70%)", pointerEvents: "none" }} />
           <div style={{ position: "relative" }}>
@@ -36,7 +36,7 @@ export function CtaFooter() {
       {/* Footer */}
       <footer style={{ borderTop: "1px solid #ebe7e1" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px 40px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 40, alignItems: "start" }}>
+          <div className="landing-footer-grid">
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 600, fontSize: 19, letterSpacing: "-.4px", marginBottom: 12 }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none">

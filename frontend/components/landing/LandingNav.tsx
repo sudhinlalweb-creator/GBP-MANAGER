@@ -40,7 +40,7 @@ export function LandingNav() {
         transition: "backdrop-filter .3s, border-color .3s, background .3s",
       }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto", height: 64, padding: "0 24px", display: "flex", alignItems: "center", gap: 32 }}>
+      <div className="landing-nav-inner">
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 600, fontSize: 19, letterSpacing: "-.4px", color: "#111", textDecoration: "none" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
             <path d="M12 22s7-6.16 7-12A7 7 0 0 0 5 10c0 5.84 7 12 7 12Z" fill="#111" />
@@ -48,7 +48,7 @@ export function LandingNav() {
           </svg>
           Pinly
         </Link>
-        <nav style={{ display: "flex", gap: 28, fontSize: 14.5, fontWeight: 500, marginLeft: 8 }}>
+        <nav className="landing-nav-links" style={{ fontSize: 14.5, fontWeight: 500 }}>
           {["Features", "Pricing", "Agencies", "Blog"].map((label) => (
             <a key={label} href={`#${label.toLowerCase()}`}
               style={{ color: "#626260", textDecoration: "none", transition: "color .2s" }}
@@ -57,7 +57,7 @@ export function LandingNav() {
             >{label}</a>
           ))}
         </nav>
-        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 14 }}>
+        <div className="landing-nav-actions">
           {authed ? (
             <Link href="/dashboard" style={{ background: "#111", color: "#fff", fontSize: 14.5, fontWeight: 500, padding: "10px 17px", borderRadius: 8, textDecoration: "none" }}>
               Go to Dashboard

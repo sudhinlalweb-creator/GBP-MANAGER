@@ -9,9 +9,9 @@ const BRANDS = [
 export function SocialProofBar() {
   return (
     <section style={{ borderTop: "1px solid #ebe7e1", borderBottom: "1px solid #ebe7e1", background: "#fff" }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "26px 24px", display: "flex", alignItems: "center", justifyContent: "center", gap: 18, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 13, color: "#9c9fa5", fontWeight: 500, marginRight: 8 }}>Powering local growth for</span>
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", justifyContent: "center" }}>
+      <div className="landing-social-bar">
+        <span style={{ fontSize: 13, color: "#9c9fa5", fontWeight: 500, textAlign: "center" }}>Powering local growth for</span>
+        <div className="landing-social-brands">
           {BRANDS.map(({ label, path }, i) => (
             <span key={label} style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
               {i > 0 && <span style={{ color: "#d3cec6" }}>·</span>}

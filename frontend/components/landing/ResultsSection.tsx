@@ -54,7 +54,7 @@ function StatCard({ count, suffix, label, green, decimals }: { count: number; su
 
 export function ResultsSection() {
   return (
-    <section id="agencies" style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 24px 0", scrollMarginTop: 80 }}>
+    <section id="agencies" className="landing-section" style={{ scrollMarginTop: 80 }}>
       <div style={{ maxWidth: 680, marginBottom: 44 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#ff5600", marginBottom: 14 }}>Results</div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", lineHeight: 1.1, letterSpacing: "-1.2px", fontWeight: 600 }}>
@@ -62,11 +62,11 @@ export function ResultsSection() {
         </h2>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 20 }}>
+      <div className="landing-four-col">
         {STATS.map((s) => <StatCard key={s.label} {...s} />)}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, marginTop: 20 }}>
+      <div className="landing-three-col" style={{ marginTop: 20 }}>
         {TESTIMONIALS.map(({ quote, initials, name, role }) => (
           <div key={name} style={{ background: "#fff", border: "1px solid #d3cec6", borderRadius: 12, padding: 30 }}>
             <div style={{ display: "flex", gap: 3, marginBottom: 16, color: "#f59e0b", fontSize: 18 }}>★★★★★</div>

@@ -36,14 +36,14 @@ function FeatureCard({ title, desc, path, ai }: { title: string; desc: string; p
 
 export function FeaturesSection() {
   return (
-    <section id="features" style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 24px 0", scrollMarginTop: 80 }}>
+    <section id="features" className="landing-section" style={{ scrollMarginTop: 80 }}>
       <div style={{ maxWidth: 680, marginBottom: 44 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#ff5600", marginBottom: 14 }}>Features</div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", lineHeight: 1.1, letterSpacing: "-1.2px", fontWeight: 600 }}>
           Everything your GBP needs. All in one place.
         </h2>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+      <div className="landing-three-col">
         {FEATURES.map((f) => <FeatureCard key={f.title} {...f} />)}
       </div>
     </section>

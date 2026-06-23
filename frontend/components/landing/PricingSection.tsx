@@ -30,7 +30,7 @@ export function PricingSection() {
   const [annual, setAnnual] = useState(false)
 
   return (
-    <section id="pricing" style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 24px 0", scrollMarginTop: 80 }}>
+    <section id="pricing" className="landing-section" style={{ scrollMarginTop: 80 }}>
       <div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 40px" }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#ff5600", marginBottom: 14 }}>Pricing</div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", lineHeight: 1.1, letterSpacing: "-1.2px", fontWeight: 600 }}>
@@ -48,7 +48,7 @@ export function PricingSection() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20, alignItems: "start" }}>
+      <div className="landing-three-col" style={{ alignItems: "start" }}>
         {PLANS.map(({ name, priceM, priceA, cta, ctaHref, featured, features }) => {
           const price = annual ? priceA : priceM
           return (

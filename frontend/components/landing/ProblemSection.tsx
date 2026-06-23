@@ -41,14 +41,14 @@ function ProblemCard({ title, desc, path, delay }: { title: string; desc: string
 
 export function ProblemSection() {
   return (
-    <section style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 24px 0" }}>
+    <section className="landing-section">
       <div style={{ maxWidth: 680, marginBottom: 44 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#ff5600", marginBottom: 14 }}>The problem</div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", lineHeight: 1.1, letterSpacing: "-1.2px", fontWeight: 600 }}>
           Why most local businesses are invisible on Google
         </h2>
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 20 }}>
+      <div className="landing-three-col">
         {PROBLEMS.map((p, i) => <ProblemCard key={p.title} {...p} delay={i * 0.08} />)}
       </div>
     </section>

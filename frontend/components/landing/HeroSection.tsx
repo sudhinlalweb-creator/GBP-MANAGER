@@ -48,7 +48,7 @@ function AuditCard() {
           LIVE
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 22, padding: "18px 4px 8px" }}>
+      <div className="landing-audit-main">
         <div style={{ position: "relative", width: 148, height: 148, flexShrink: 0 }}>
           <svg width="148" height="148" viewBox="0 0 200 200">
             <circle cx="100" cy="100" r="80" fill="none" stroke="#ebe7e1" strokeWidth="15" strokeLinecap="round" strokeDasharray="377 503" transform="rotate(135 100 100)" />
@@ -66,7 +66,7 @@ function AuditCard() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a8f3c" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 17l6-6 4 4 8-8M21 7v6h-6"/></svg>
             +57 points after fixes
           </div>
-          <div style={{ display: "flex", alignItems: "stretch", gap: 9 }}>
+          <div className="landing-audit-scores">
             <div style={{ flex: 1, background: "#faf7f3", border: "1px solid #ebe7e1", borderRadius: 10, padding: "10px 12px" }}>
               <div style={{ fontSize: 10.5, letterSpacing: ".4px", textTransform: "uppercase", color: "#9c9fa5", fontWeight: 600, marginBottom: 4 }}>Before</div>
               <div style={{ fontSize: 23, fontWeight: 600, color: "#9c9fa5", letterSpacing: "-.6px", lineHeight: 1 }}>34</div>
@@ -106,7 +106,7 @@ function AuditCard() {
 
 export function HeroSection() {
   return (
-    <section style={{ maxWidth: 1200, margin: "0 auto", padding: "56px 24px 56px", display: "grid", gridTemplateColumns: "1.05fr .95fr", gap: 56, alignItems: "center" }}>
+    <section className="landing-section landing-hero" style={{ paddingBottom: 56 }}>
       <div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #d3cec6", borderRadius: 9999, padding: "6px 14px", fontSize: 13, fontWeight: 500, color: "#626260", marginBottom: 24 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#0bdf50", display: "inline-block" }} />
@@ -128,7 +128,7 @@ export function HeroSection() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
-        <div style={{ marginTop: 30, display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: "#7b7b78" }}>
+        <div style={{ marginTop: 30, display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: "#7b7b78", flexWrap: "wrap" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bdf50" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
           No credit card required · Setup in 3 minutes
         </div>

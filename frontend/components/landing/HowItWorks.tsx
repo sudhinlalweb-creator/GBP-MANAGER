@@ -7,7 +7,7 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how" style={{ maxWidth: 1200, margin: "0 auto", padding: "64px 24px 0", scrollMarginTop: 80 }}>
+    <section id="how" className="landing-section" style={{ scrollMarginTop: 80 }}>
       <div style={{ maxWidth: 680, marginBottom: 48 }}>
         <div style={{ fontSize: 14, fontWeight: 600, color: "#ff5600", marginBottom: 14 }}>How it works</div>
         <h2 style={{ fontSize: "clamp(28px,4vw,42px)", lineHeight: 1.1, letterSpacing: "-1.2px", fontWeight: 600 }}>
@@ -16,7 +16,7 @@ export function HowItWorks() {
       </div>
       <div style={{ position: "relative" }}>
         {/* connector line */}
-        <div style={{ position: "absolute", top: 23, left: "8%", right: "8%", height: 1, background: "#d3cec6" }} />
+        <div className="landing-step-line" style={{ position: "absolute", top: 23, left: "8%", right: "8%", height: 1, background: "#d3cec6" }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24, position: "relative" }}>
           {STEPS.map(({ n, title, desc }) => (
             <div key={n}>
