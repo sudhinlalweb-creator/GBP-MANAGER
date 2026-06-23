@@ -3,24 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import stripe
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.plans import PLANS, get_plan
+from app.models.webhook_event import ProcessedWebhookEvent
 from app.organizations.models import Organization
 from app.worker.celery_app import celery_app
 
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
-PLAN_LIMITS = {
-    "trial": {"location_limit": 1, "keyword_limit": 5, "subscription_tier": "trial"},
-    "starter": {"location_limit": 1, "keyword_limit": 20, "subscription_tier": "starter"},
-    "pro": {"location_limit": 5, "keyword_limit": 50, "subscription_tier": "pro"},
-    "agency": {"location_limit": 999, "keyword_limit": 999, "subscription_tier": "agency"},
-}
 
 
 def _configure_stripe() -> None:
@@ -51,15 +50,11 @@ def _resolve_price_id(plan: str) -> str:
 
 def _apply_plan_to_org(organization: Organization, plan: str) -> None:
     """Apply plan-derived limits and tier fields to an organization."""
-    normalized_plan = plan.strip().lower()
-    if normalized_plan not in PLAN_LIMITS:
-        raise ValueError(f"Unsupported billing plan '{normalized_plan}'.")
-
-    limits = PLAN_LIMITS[normalized_plan]
-    organization.plan = normalized_plan
-    organization.subscription_tier = str(limits["subscription_tier"])
-    organization.location_limit = int(limits["location_limit"])
-    organization.keyword_limit = int(limits["keyword_limit"])
+    spec = get_plan(plan)  # raises ValueError for unknown plan
+    organization.plan = plan.strip().lower()
+    organization.subscription_tier = spec["subscription_tier"]
+    organization.location_limit = spec["location_limit"]
+    organization.keyword_limit = spec["keyword_limit"]
 
 
 async def get_or_create_stripe_customer(org: Organization, user: Any, db: AsyncSession) -> str:
@@ -92,7 +87,7 @@ async def create_checkout_session(
 ) -> str:
     """Create a Stripe Checkout session and return the hosted URL."""
     normalized_plan = plan.strip().lower()
-    if normalized_plan not in PLAN_LIMITS or normalized_plan == "trial":
+    if normalized_plan not in PLANS or normalized_plan == "trial":
         raise ValueError("Plan must be one of starter, pro, or agency.")
 
     _configure_stripe()
@@ -131,7 +126,12 @@ async def create_portal_session(org: Organization, return_url: str) -> str:
 
 
 async def handle_webhook(payload: bytes, sig_header: str, db: AsyncSession) -> None:
-    """Verify and dispatch a Stripe webhook event."""
+    """Verify, deduplicate, and dispatch a Stripe webhook event.
+
+    Uses an INSERT on processed_webhook_events to guarantee idempotency —
+    if Stripe retries an event we already handled, the UNIQUE constraint
+    raises IntegrityError and we return 200 without re-processing.
+    """
     _configure_stripe()
     if not settings.stripe_webhook_secret:
         raise ValueError("Stripe webhook verification is not configured.")
@@ -143,7 +143,18 @@ async def handle_webhook(payload: bytes, sig_header: str, db: AsyncSession) -> N
         secret=settings.stripe_webhook_secret,
     )
 
+    event_id = str(event["id"])
     event_type = str(event["type"])
+
+    # Idempotency check — attempt to record this event before processing
+    try:
+        db.add(ProcessedWebhookEvent(event_id=event_id, event_type=event_type))
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        logger.info("Stripe webhook %s (%s) already processed — skipping.", event_id, event_type)
+        return
+
     event_object = dict(event["data"]["object"])
     if event_type == "checkout.session.completed":
         await _on_checkout_completed(event_object, db)
@@ -153,6 +164,10 @@ async def handle_webhook(payload: bytes, sig_header: str, db: AsyncSession) -> N
         await _on_payment_failed(event_object, db)
     elif event_type == "customer.subscription.deleted":
         await _on_subscription_deleted(event_object, db)
+    else:
+        # Unknown event type — still commit the record so we don't reprocess it
+        await db.commit()
+        return
 
 
 async def _on_checkout_completed(session: dict[str, Any], db: AsyncSession) -> None:
@@ -160,7 +175,7 @@ async def _on_checkout_completed(session: dict[str, Any], db: AsyncSession) -> N
     metadata = session.get("metadata") or {}
     org_id = metadata.get("org_id")
     plan = str(metadata.get("plan") or "").strip().lower()
-    if not org_id or plan not in PLAN_LIMITS:
+    if not org_id or plan not in PLANS:
         return
 
     organization = await db.get(Organization, org_id)

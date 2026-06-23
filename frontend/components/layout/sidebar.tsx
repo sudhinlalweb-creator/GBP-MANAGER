@@ -3,126 +3,113 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
-import { Badge, planBadgeVariant } from "@/components/ui/badge"
 
-type NavItem = {
-  href: string
-  label: string
-  icon: JSX.Element
-  plans?: string[]
-}
-
-function HomeIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-}
-function BuildingIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-}
-function SparklesIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-}
-function ChartIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-}
-function StarIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-}
-function EditIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-}
-function BoltIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-}
-function BriefcaseIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-}
-function CogIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-}
-function LogoutIcon(): JSX.Element {
-  return <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <HomeIcon /> },
-  { href: "/profiles", label: "GBP Profiles", icon: <BuildingIcon /> },
-  { href: "/audit", label: "AI Audit", icon: <SparklesIcon /> },
-  { href: "/keywords", label: "Keywords", icon: <ChartIcon /> },
-  { href: "/reviews", label: "Reviews", icon: <StarIcon /> },
-  { href: "/posts", label: "Posts", icon: <EditIcon /> },
-  { href: "/automation", label: "Automation", icon: <BoltIcon /> },
-  { href: "/agency", label: "Agency", icon: <BriefcaseIcon />, plans: ["agency"] },
-  { href: "/settings", label: "Settings", icon: <CogIcon /> },
+const NAV = [
+  { icon: "dashboard", label: "Dashboard", href: "/dashboard" },
+  { icon: "profiles", label: "GBP Profiles", href: "/profiles" },
+  { icon: "audit", label: "AI Audit", href: "/audit", badge: "Fin", fin: true },
+  { icon: "keywords", label: "Keywords", href: "/keywords" },
+  { icon: "reviews", label: "Reviews", href: "/reviews" },
+  { icon: "posts", label: "Posts", href: "/posts" },
+  { icon: "automation", label: "Automation", href: "/automation" },
+  { icon: "agency", label: "Agency", href: "/agency", badge: "Agency" },
+  { icon: "settings", label: "Settings", href: "/settings" },
 ]
 
-export function Sidebar(): JSX.Element {
-  const pathname = usePathname()
-  const { user, memberships, activeOrgId, setActiveOrg, logout } = useAuth()
+function NavIcon({ icon, fin }: { icon: string; fin?: boolean }): JSX.Element {
+  const s = { width: 18, height: 18, fill: "none", stroke: fin ? "var(--fin)" : "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const }
+  switch (icon) {
+    case "dashboard": return <svg viewBox="0 0 24 24" {...s}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+    case "profiles": return <svg viewBox="0 0 24 24" {...s}><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01M9 12v.01M9 15v.01"/></svg>
+    case "audit": return <svg viewBox="0 0 24 24" {...s}><path d="M9.94 4.06 12 2l2.06 2.06L16 4l-.5 2.5L18 7l-1.5 2L18 11l-2.5.5L16 14l-2-.06L12 16l-2.06-2.06L8 14l.5-2.5L6 11l1.5-2L6 7l2.5-.5z"/></svg>
+    case "keywords": return <svg viewBox="0 0 24 24" {...s}><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg>
+    case "reviews": return <svg viewBox="0 0 24 24" {...s}><path d="M11.5 3.5 14 8.6l5.6.8-4 4 1 5.6-5.1-2.7L6.4 19l1-5.6-4-4 5.6-.8z"/></svg>
+    case "posts": return <svg viewBox="0 0 24 24" {...s}><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+    case "automation": return <svg viewBox="0 0 24 24" {...s}><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+    case "agency": return <svg viewBox="0 0 24 24" {...s}><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    case "settings": return <svg viewBox="0 0 24 24" {...s}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1"/></svg>
+    default: return <></>
+  }
+}
 
+export function Sidebar(): JSX.Element {
+  const { user, memberships, activeOrgId, setActiveOrg, logout } = useAuth()
+  const pathname = usePathname()
   const activeMembership = memberships.find((m) => m.organization_id === activeOrgId)
+  const initials = (activeMembership?.organization_name ?? "?").slice(0, 2).toUpperCase()
+  const email = user?.email ?? ""
+  const emailInitial = email.charAt(0).toUpperCase()
 
   return (
-    <aside className="w-56 min-h-screen bg-[#0b1220] border-r border-[#1f2937] flex flex-col">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-[#1f2937]">
-        <span className="text-[#22c55e] font-bold text-lg tracking-tight">GBP Manager</span>
+    <aside style={{
+      width: 268, flexShrink: 0, minHeight: "100vh", display: "flex", flexDirection: "column",
+      borderRight: "1px solid var(--hairline)", background: "var(--canvas)",
+      position: "sticky", top: 0, height: "100vh",
+    }}>
+      {/* Brand */}
+      <div style={{ padding: "24px 20px 18px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 30, height: 30, borderRadius: 8, background: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--canvas)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        </div>
+        <span style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.4px", color: "var(--ink)" }}>GBP Manager</span>
       </div>
 
-      {/* Org switcher */}
-      {memberships.length > 0 && (
-        <div className="px-3 py-3 border-b border-[#1f2937]">
-          <select
-            value={activeOrgId ?? ""}
-            onChange={(e) => setActiveOrg(e.target.value)}
-            className="w-full bg-[#030712] border border-[#1f2937] text-[#f9fafb] text-xs rounded px-2 py-1.5 focus:outline-none focus:border-[#22c55e]"
-          >
-            {memberships.map((m) => (
-              <option key={m.organization_id} value={m.organization_id}>
-                {m.organization_id.slice(0, 8)}… ({m.role})
-              </option>
-            ))}
-          </select>
-          {activeMembership && (
-            <p className="text-gray-500 text-xs mt-1 px-1">{activeMembership.role}</p>
+      {/* Workspace */}
+      <div style={{ padding: "0 16px 16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--surface)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 12px" }}>
+          <span style={{ width: 26, height: 26, borderRadius: 7, background: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 12, fontWeight: 600, color: "var(--ink)" }}>{initials}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 13, fontWeight: 500, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activeMembership?.organization_name ?? "Workspace"}</span>
+            <span style={{ display: "block", fontSize: 11, color: "var(--ink-tertiary)" }}>{activeMembership?.role ?? "member"}</span>
+          </span>
+          {memberships.length > 1 && (
+            <select
+              value={activeOrgId ?? ""}
+              onChange={(e) => setActiveOrg(e.target.value)}
+              style={{ position: "absolute", opacity: 0, inset: 0, cursor: "pointer" }}
+            >
+              {memberships.map((m) => (
+                <option key={m.organization_id} value={m.organization_id}>{m.organization_name}</option>
+              ))}
+            </select>
           )}
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-subtle)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="m7 9 5-5 5 5"/><path d="m7 15 5 5 5-5"/></svg>
         </div>
-      )}
+      </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/")
+      <nav style={{ flex: 1, overflowY: "auto", padding: "4px 12px", display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.3px", color: "var(--ink-tertiary)", padding: "8px 10px 4px", textTransform: "uppercase" }}>Workspace</span>
+        {NAV.map((item) => {
+          const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                active
-                  ? "bg-[#22c55e]/10 text-[#22c55e]"
-                  : "text-gray-400 hover:text-[#f9fafb] hover:bg-[#1f2937]/50"
-              }`}
-            >
-              {item.icon}
+            <Link key={item.href} href={item.href} style={{
+              display: "flex", alignItems: "center", gap: 11, padding: "9px 11px",
+              borderRadius: 9, fontSize: 14, fontWeight: 500, textDecoration: "none",
+              color: active ? "var(--ink)" : "var(--ink-muted)",
+              background: active ? "var(--active-bg)" : "transparent",
+              border: `1px solid ${active ? "var(--hairline)" : "transparent"}`,
+              transition: "background .15s, color .15s",
+            }}>
+              <NavIcon icon={item.icon} fin={item.fin} />
               {item.label}
-              {item.plans && (
-                <span className="ml-auto text-[10px] text-blue-400 border border-blue-800 rounded px-1">
-                  Agency
-                </span>
+              {item.badge && (
+                <span style={{
+                  marginLeft: "auto", fontSize: 10, fontWeight: 600, padding: "1px 7px", borderRadius: 999,
+                  ...(item.fin ? { background: "var(--fin)", color: "#fff", letterSpacing: "0.2px" } : { color: "var(--ink-muted)", border: "1px solid var(--hairline)" }),
+                }}>{item.badge}</span>
               )}
             </Link>
           )
         })}
       </nav>
 
-      {/* User */}
-      <div className="px-3 py-3 border-t border-[#1f2937]">
-        <p className="text-xs text-gray-400 truncate mb-2">{user?.email}</p>
-        <button
-          onClick={() => void logout()}
-          className="flex items-center gap-2 text-xs text-gray-400 hover:text-red-400 transition-colors"
-        >
-          <LogoutIcon />
-          Sign out
+      {/* Footer */}
+      <div style={{ borderTop: "1px solid var(--hairline)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+        <span style={{ width: 30, height: 30, borderRadius: 999, background: "var(--fin)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, color: "#fff", fontSize: 12, fontWeight: 600 }}>{emailInitial}</span>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{email}</span>
+        <button onClick={() => void logout()} title="Sign out" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--ink-subtle)", display: "flex", padding: 6, borderRadius: 7 }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
         </button>
       </div>
     </aside>

@@ -173,10 +173,10 @@ export default function SettingsPage(): JSX.Element {
           <div className="space-y-2">
             {memberships.map((m) => (
               <div
-                key={m.id}
+                key={m.organization_id}
                 className="flex items-center justify-between py-2 border-b border-[#1f2937] last:border-0"
               >
-                <span className="text-gray-300 text-sm">{m.user_id.slice(0, 16)}…</span>
+                <span className="text-gray-300 text-sm">{m.organization_name}</span>
                 <Badge variant={m.role === "owner" ? "green" : "gray"}>{m.role}</Badge>
               </div>
             ))}

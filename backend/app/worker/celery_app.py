@@ -5,9 +5,11 @@ from celery.schedules import crontab
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.core.sentry import init_sentry
 
 
 configure_logging()
+init_sentry()   # no-op when SENTRY_DSN is absent
 settings = get_settings()
 
 celery_app = Celery(

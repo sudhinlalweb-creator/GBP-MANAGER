@@ -12,6 +12,7 @@ from app.models.ranking_history import RankingHistory
 from app.models.review import GBPReview
 from app.models.target_location import TargetLocation
 from app.models.user import User
+from app.models.webhook_event import ProcessedWebhookEvent
 from app.organizations.models import Organization, OrganizationMembership
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     "Keyword",
     "Organization",
     "OrganizationMembership",
+    "ProcessedWebhookEvent",
     "Project",
     "RankingHistory",
     "TargetLocation",

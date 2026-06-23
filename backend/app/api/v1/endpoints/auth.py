@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from redis import asyncio as redis_asyncio
@@ -36,6 +36,7 @@ from app.schemas.auth import (
     UserRegisterRequest,
     UserResponse,
 )
+from app.core.rate_limit import limiter
 from app.utils.text import slugify
 from app.worker.celery_app import celery_app
 
@@ -148,7 +149,9 @@ async def _ensure_refresh_token_is_active(refresh_token: str) -> dict[str, objec
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("3/minute")
 async def register_user(
+    request: Request,
     payload: UserRegisterRequest,
     db_session: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
@@ -211,7 +214,9 @@ async def register_user(
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def login_user(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db_session: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
@@ -272,7 +277,9 @@ async def logout_user(payload: LogoutRequest) -> MessageResponse:
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/minute")
 async def forgot_password(
+    request: Request,
     payload: ForgotPasswordRequest,
     db_session: AsyncSession = Depends(get_db),
 ) -> MessageResponse:

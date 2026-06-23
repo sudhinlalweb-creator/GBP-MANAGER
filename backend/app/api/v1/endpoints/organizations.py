@@ -17,6 +17,7 @@ from app.api.deps import (
     get_db,
 )
 from app.core.config import get_settings
+from app.core.plans import PLANS
 from app.models.user import User
 from app.organizations.models import Organization, OrganizationMembership
 from app.schemas.auth import MessageResponse
@@ -35,13 +36,6 @@ ADMIN_ROLES = {"owner", "admin"}
 INVITE_ROLE_CHOICES = {"admin", "manager", "viewer"}
 settings = get_settings()
 invite_serializer = URLSafeTimedSerializer(settings.secret_key, salt="org-invite")
-ORGANIZATION_LIMITS: dict[str, tuple[int, int]] = {
-    "trial": (1, 25),
-    "starter": (3, 100),
-    "pro": (25, 1000),
-    "agency": (250, 10000),
-}
-
 
 def _require_organization_admin(context: OrganizationContext) -> None:
     """Require an organization membership role with management access."""
@@ -77,7 +71,7 @@ async def _count_owners(db_session: AsyncSession, organization_id: UUID) -> int:
 def _serialize_organization(organization: Organization) -> OrganizationResponse:
     """Convert an organization row into the API response contract."""
     plan = organization.plan.strip().lower()
-    location_limit, keyword_limit = ORGANIZATION_LIMITS.get(plan, (0, 0))
+    spec = PLANS.get(plan, PLANS["trial"])
     return OrganizationResponse(
         id=organization.id,
         name=organization.name,
@@ -85,8 +79,8 @@ def _serialize_organization(organization: Organization) -> OrganizationResponse:
         plan=plan,
         subscription_tier=organization.subscription_tier,
         subscription_status=organization.subscription_status,
-        location_limit=organization.location_limit if organization.location_limit is not None else location_limit,
-        keyword_limit=organization.keyword_limit if organization.keyword_limit is not None else keyword_limit,
+        location_limit=organization.location_limit if organization.location_limit is not None else spec["location_limit"],
+        keyword_limit=organization.keyword_limit if organization.keyword_limit is not None else spec["keyword_limit"],
         trial_ends_at=organization.trial_ends_at,
         created_at=organization.created_at,
     )

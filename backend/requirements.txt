@@ -14,3 +14,7 @@ passlib[bcrypt]==1.7.4
 itsdangerous==2.2.0
 stripe==11.4.1
 python-multipart==0.0.20
+cryptography==42.0.8
+resend==2.4.0
+slowapi==0.1.9
+sentry-sdk[fastapi,celery]==2.19.2

@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import OrganizationContext
 from app.core.config import get_settings
+from app.core.encryption import decrypt_field, encrypt_field
+from app.core.plans import assert_within_limit
 from app.google.client import GoogleBusinessProfileClient, GoogleIntegrationError, GoogleOAuthClient
 from app.google.models import GoogleAccount, GoogleBusinessProfile
 from app.google.scoring import compute_completeness_score
@@ -118,7 +120,7 @@ class GoogleIntegrationService:
             db_session.add(google_account)
 
         if isinstance(refresh_token, str) and refresh_token:
-            google_account.refresh_token_encrypted = refresh_token
+            google_account.refresh_token_encrypted = encrypt_field(refresh_token)
         google_account.access_token_expires_at = expires_at.isoformat() if expires_at else None
 
         await db_session.commit()
@@ -221,12 +223,22 @@ class GoogleIntegrationService:
                 "Google account does not have a refresh token. Reconnect with consent."
             )
 
-        token_payload = await self.oauth_client.refresh_access_token(
-            google_account.refresh_token_encrypted
-        )
+        try:
+            raw_refresh_token = decrypt_field(google_account.refresh_token_encrypted)
+        except ValueError:
+            raise GoogleIntegrationError(
+                "Google account refresh token could not be decrypted. "
+                "The account may need to be reconnected."
+            )
+        token_payload = await self.oauth_client.refresh_access_token(raw_refresh_token)
         access_token = token_payload.get("access_token")
         if not isinstance(access_token, str) or not access_token:
             raise GoogleIntegrationError("Google access token refresh did not return an access token.")
+
+        from app.organizations.models import Organization as _Organization
+        org = await db_session.get(_Organization, organization_id)
+        org_location_limit: int = (org.location_limit if org and org.location_limit else 1)
+        org_plan: str = (org.plan if org and org.plan else "trial")
 
         accounts = await self.gbp_client.fetch_accounts(access_token)
         profiles_synced = 0
@@ -241,6 +253,9 @@ class GoogleIntegrationService:
                 organization_id=organization_id,
                 google_account_id=google_account_id,
                 locations=locations,
+                location_limit=org_location_limit,
+                current_count=await self._count_profiles(db_session, organization_id),
+                plan_name=org_plan,
             )
 
         await db_session.commit()
@@ -283,9 +298,13 @@ class GoogleIntegrationService:
         organization_id: UUID,
         google_account_id: UUID,
         locations: list[dict[str, Any]],
+        location_limit: int = 999,
+        current_count: int = 0,
+        plan_name: str = "trial",
     ) -> int:
         upserted = 0
         now = datetime.now(timezone.utc)
+        new_this_batch = 0
         for location in locations:
             title = location.get("title")
             if not isinstance(title, str) or not title.strip():
@@ -298,12 +317,19 @@ class GoogleIntegrationService:
             )
             profile = await db_session.scalar(statement)
             if profile is None:
+                assert_within_limit(
+                    "location",
+                    current_count + new_this_batch,
+                    location_limit,
+                    plan_name,
+                )
                 profile = GoogleBusinessProfile(
                     organization_id=organization_id,
                     google_account_id=google_account_id,
                     google_location_name=title.strip(),
                 )
                 db_session.add(profile)
+                new_this_batch += 1
 
             primary_category = location.get("primaryCategory")
             phone_numbers = location.get("phoneNumbers")

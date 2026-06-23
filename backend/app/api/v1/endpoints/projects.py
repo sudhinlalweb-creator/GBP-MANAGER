@@ -9,12 +9,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_organization_context, get_current_user, get_owned_project_or_404
+from app.core.plans import assert_within_limit
 from app.db.session import get_db_session
 from app.models.keyword import Keyword
 from app.models.project import Project
 from app.models.target_location import TargetLocation
 from app.models.user import User
-from app.organizations.models import OrganizationMembership
+from app.organizations.models import Organization, OrganizationMembership
 from app.schemas.keyword import KeywordCreateRequest, KeywordResponse, KeywordUpdateRequest
 from app.schemas.location import LocationCreateRequest, LocationResponse, LocationUpdateRequest
 from app.schemas.project import ProjectCreateRequest, ProjectResponse, ProjectUpdateRequest
@@ -268,10 +269,10 @@ async def create_keyword(
             detail="Target location does not belong to this project.",
         )
 
-    # Enforce org-level keyword_limit: count all keywords across the user's projects.
-    from app.organizations.models import Organization
+    # Enforce org-level keyword_limit across all projects the user owns.
     membership = await db_session.scalar(
-        select(OrganizationMembership).where(
+        select(OrganizationMembership)
+        .where(
             OrganizationMembership.user_id == current_user.id,
             OrganizationMembership.is_pending.is_(False),
         )
@@ -286,16 +287,13 @@ async def create_keyword(
                     select(Project.id).where(Project.owner_id == current_user.id)
                 )
             ).all()
-            total_keywords = await db_session.scalar(
-                select(func.count(Keyword.id)).where(
-                    Keyword.project_id.in_(owned_project_ids)
+            total_keywords = int(
+                await db_session.scalar(
+                    select(func.count(Keyword.id)).where(Keyword.project_id.in_(owned_project_ids))
                 )
+                or 0
             )
-            if (total_keywords or 0) >= org.keyword_limit:
-                raise HTTPException(
-                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                    detail=f"Keyword limit of {org.keyword_limit} reached. Upgrade your plan to track more keywords.",
-                )
+            assert_within_limit("keyword", total_keywords, org.keyword_limit, org.plan or "trial")
 
     keyword = Keyword(project_id=project.id, **payload.model_dump())
     db_session.add(keyword)

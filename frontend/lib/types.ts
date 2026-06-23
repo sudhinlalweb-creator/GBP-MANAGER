@@ -7,15 +7,15 @@ export type User = {
 }
 
 export type OrganizationMembership = {
-  id: string
   organization_id: string
-  user_id: string
+  organization_name: string
+  organization_slug: string
+  subscription_tier: string
   role: string
-  is_pending: boolean
+  joined_at: string
 }
 
-export type AuthMe = {
-  user: User
+export type AuthMe = User & {
   memberships: OrganizationMembership[]
 }
 

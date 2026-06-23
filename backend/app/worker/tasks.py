@@ -12,9 +12,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.core.email import send_billing_alert, send_org_invite, send_password_reset
 from app.db.session import AsyncSessionLocal
 from app.models.keyword import Keyword
 from app.models.ranking_history import RankingHistory
+from app.organizations.models import Organization, OrganizationMembership
+from app.models.user import User
 from app.services.serp.client import HTTPGoogleSERPClient
 from app.services.serp.parser import ParsedSERPResult, parse_google_serp
 from app.utils.geo import build_google_uule
@@ -27,50 +30,88 @@ RANK_DROP_THRESHOLD = 5
 RANK_SPIKE_THRESHOLD = 5
 
 
-@celery_app.task(bind=True, name="app.worker.tasks.send_password_reset_email")
+@celery_app.task(
+    bind=True,
+    name="app.worker.tasks.send_password_reset_email",
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+)
 def send_password_reset_email(
     self: object,
     email: str,
     reset_token: str,
 ) -> dict[str, str]:
-    """Log a password reset email payload for later provider integration."""
+    """Send a password-reset email via Resend."""
     del self
-    logger.info(
-        "Queued password reset email for %s with token prefix %s",
-        email,
-        reset_token[:12],
-    )
-    return {"email": email, "status": "queued"}
+    send_password_reset(email=email, reset_token=reset_token)
+    return {"email": email, "status": "sent"}
 
 
-@celery_app.task(bind=True, name="app.worker.tasks.send_org_invite_email")
+@celery_app.task(
+    bind=True,
+    name="app.worker.tasks.send_org_invite_email",
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+)
 def send_org_invite_email(
     self: object,
     email: str,
     invite_token: str,
     org_name: str,
 ) -> dict[str, str]:
-    """Log an organization invite email payload for later provider integration."""
+    """Send an organisation invite email via Resend."""
     del self
-    logger.info(
-        "Queued organization invite email for %s into %s with token prefix %s",
-        email,
-        org_name,
-        invite_token[:12],
-    )
-    return {"email": email, "organization": org_name, "status": "queued"}
+    send_org_invite(email=email, invite_token=invite_token, org_name=org_name)
+    return {"email": email, "organization": org_name, "status": "sent"}
 
 
-@celery_app.task(bind=True, name="app.worker.tasks.send_billing_alert_email")
+@celery_app.task(
+    bind=True,
+    name="app.worker.tasks.send_billing_alert_email",
+    autoretry_for=(Exception,),
+    max_retries=3,
+    retry_backoff=True,
+)
 def send_billing_alert_email(
     self: object,
     org_id: str,
     reason: str,
 ) -> dict[str, str]:
-    """Log a billing alert payload for later provider integration."""
+    """Fetch the org owner email then send a billing alert via Resend."""
     del self
-    logger.info("Queued billing alert for org %s reason=%s", org_id, reason)
-    return {"org_id": org_id, "status": "queued"}
+    owner_email = asyncio.run(_fetch_org_owner_email(org_id))
+    if not owner_email:
+        logger.warning("No owner email found for org %s — billing alert not sent.", org_id)
+        return {"org_id": org_id, "status": "skipped_no_email"}
+    org_name = asyncio.run(_fetch_org_name(org_id)) or "your organization"
+    send_billing_alert(org_id=owner_email, org_name=org_name, reason=reason)
+    return {"org_id": org_id, "status": "sent"}
+
+
+async def _fetch_org_owner_email(org_id: str) -> str | None:
+    """Return the email of the first owner-role member of the organization."""
+    async with AsyncSessionLocal() as session:
+        membership = await session.scalar(
+            select(OrganizationMembership)
+            .where(
+                OrganizationMembership.organization_id == org_id,
+                OrganizationMembership.role == "owner",
+            )
+            .limit(1)
+        )
+        if membership is None:
+            return None
+        user = await session.get(User, membership.user_id)
+        return user.email if user else None
+
+
+async def _fetch_org_name(org_id: str) -> str | None:
+    """Return the display name of the organization."""
+    async with AsyncSessionLocal() as session:
+        org = await session.get(Organization, org_id)
+        return org.name if org else None
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.fetch_serp_data")

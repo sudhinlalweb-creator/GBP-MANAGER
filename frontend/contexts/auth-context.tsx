@@ -17,6 +17,7 @@ import {
   clearTokens,
   getAccessToken,
   getActiveOrgId,
+  getRefreshToken,
   saveTokens,
   setActiveOrgId,
 } from "@/lib/auth"
@@ -50,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     }
     try {
       const me = await apiMe(token)
-      setUser(me.user)
+      setUser(me)
       setMemberships(me.memberships)
       const stored = getActiveOrgId()
       const valid = me.memberships.find((m) => m.organization_id === stored) ?? me.memberships[0]
@@ -90,8 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   )
 
   const logout = useCallback(async () => {
-    const token = getAccessToken()
-    if (token) await apiLogout(token)
+    const refreshToken = getRefreshToken()
+    if (refreshToken) await apiLogout(refreshToken)  // revokes token in Redis blocklist
     clearTokens()
     setUser(null)
     setMemberships([])

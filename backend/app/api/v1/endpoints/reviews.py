@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -158,13 +159,14 @@ async def reply_to_review(
 @router.delete(
     "/profiles/{profile_id}/reviews/{review_id}/reply",
     status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
 )
 async def delete_review_reply(
     profile_id: UUID,
     review_id: UUID,
     context: OrganizationContext = Depends(get_current_organization_context),
     db: AsyncSession = Depends(get_db_session),
-) -> None:
+) -> Response:
     """Delete an existing reply from a review."""
     profile = await _get_profile_for_org(db, profile_id, context.organization.id)
     review = await db.scalar(
@@ -190,3 +192,4 @@ async def delete_review_reply(
     review.replied_at = None
     db.add(review)
     await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

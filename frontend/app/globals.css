@@ -2,10 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@keyframes pinly-spin { to { transform: rotate(360deg); } }
+@keyframes pinly-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes pinly-ping { 0% { transform: scale(1); opacity: .6; } 70%, 100% { transform: scale(2.4); opacity: 0; } }
+
+*, *::before, *::after { box-sizing: border-box; }
+
 :root {
-  color-scheme: dark;
+  --canvas: #f5f1ec;
+  --surface: #ffffff;
+  --surface-2: #ebe7e1;
+  --hairline: #d3cec6;
+  --hairline-soft: #e6e1da;
+  --ink: #111111;
+  --ink-muted: #626260;
+  --ink-subtle: #7b7b78;
+  --ink-tertiary: #9c9fa5;
+  --fin: #ff5600;
+  --success: #0b8a3e;
+  --btn-bg: #111111;
+  --btn-fg: #ffffff;
+  --active-bg: #ffffff;
+  --hover-bg: #ebe7e1;
 }
 
-body {
-  @apply bg-background text-foreground antialiased;
+[data-theme="dark"] {
+  --canvas: #1a1916;
+  --surface: #26241f;
+  --surface-2: #302d27;
+  --hairline: #3b382f;
+  --hairline-soft: #2a2823;
+  --ink: #f5f1ec;
+  --ink-muted: #a8a39a;
+  --ink-subtle: #8c887f;
+  --ink-tertiary: #6f6c64;
+  --fin: #ff5f12;
+  --success: #34c264;
+  --btn-bg: #f5f1ec;
+  --btn-fg: #1a1916;
+  --active-bg: #302d27;
+  --hover-bg: #302d27;
 }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--fin); color: #fff; }

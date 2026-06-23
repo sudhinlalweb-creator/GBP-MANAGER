@@ -17,6 +17,9 @@ packages = ["app"]
 line-length = 100
 target-version = "py312"
 
+# File-length enforcement: run `python ../scripts/check_file_length.py` in CI.
+# No file in backend/app may exceed 300 lines. Split at logical service boundaries.
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

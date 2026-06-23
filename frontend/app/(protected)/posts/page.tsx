@@ -31,7 +31,9 @@ export default function PostsPage(): JSX.Element {
 
   const { data: profiles } = useQuery<GoogleBusinessProfile[]>({
     queryKey: ["profiles", activeOrgId],
-    queryFn: () => api.get<GoogleBusinessProfile[]>("/google/profiles"),
+    queryFn: () =>
+      api.get<{ profiles: GoogleBusinessProfile[] } | GoogleBusinessProfile[]>("/google/profiles")
+        .then((r) => Array.isArray(r) ? r : r.profiles),
     enabled: !!activeOrgId,
   })
 

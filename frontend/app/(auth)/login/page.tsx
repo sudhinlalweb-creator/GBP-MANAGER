@@ -26,53 +26,59 @@ export default function LoginPage(): JSX.Element {
   }
 
   return (
-    <div className="bg-[#0b1220] border border-[#1f2937] rounded-xl p-8">
-      <h1 className="text-[#f9fafb] text-xl font-semibold mb-6">Sign in</h1>
-      <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
+    <div style={{ background: "var(--surface)", border: "1px solid var(--hairline)", borderRadius: 16, padding: "36px 32px", width: "100%", maxWidth: 400 }}>
+      {/* Logo */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--ink)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--canvas)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/></svg>
+        </div>
+        <span style={{ fontSize: 17, fontWeight: 600, color: "var(--ink)", letterSpacing: "-0.3px" }}>GBP Manager</span>
+      </div>
+
+      <h1 style={{ fontSize: 20, fontWeight: 600, color: "var(--ink)", marginBottom: 4, letterSpacing: "-0.3px" }}>Welcome back</h1>
+      <p style={{ fontSize: 14, color: "var(--ink-muted)", marginBottom: 24 }}>Sign in to your account to continue</p>
+
+      <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Email</label>
+          <label style={{ display: "block", fontSize: 13.5, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>Email</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-[#030712] border border-[#1f2937] rounded-lg px-3 py-2 text-[#f9fafb] text-sm focus:outline-none focus:border-[#22c55e]"
             placeholder="you@example.com"
+            style={{ width: "100%", fontFamily: "inherit", fontSize: 14, color: "var(--ink)", background: "var(--canvas)", border: "1px solid var(--hairline)", borderRadius: 8, padding: "9px 12px", outline: "none", boxSizing: "border-box" }}
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-400 mb-1">Password</label>
+          <label style={{ display: "block", fontSize: 13.5, fontWeight: 500, color: "var(--ink)", marginBottom: 6 }}>Password</label>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-[#030712] border border-[#1f2937] rounded-lg px-3 py-2 text-[#f9fafb] text-sm focus:outline-none focus:border-[#22c55e]"
             placeholder="••••••••"
+            style={{ width: "100%", fontFamily: "inherit", fontSize: 14, color: "var(--ink)", background: "var(--canvas)", border: "1px solid var(--hairline)", borderRadius: 8, padding: "9px 12px", outline: "none", boxSizing: "border-box" }}
           />
         </div>
-        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        {error && (
+          <p style={{ fontSize: 13.5, color: "#dc2626", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 12px" }}>{error}</p>
+        )}
+
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center gap-2 bg-[#22c55e] text-black font-semibold px-4 py-2.5 rounded-lg hover:bg-green-400 transition disabled:opacity-60"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--btn-bg)", color: "var(--btn-fg)", border: "none", borderRadius: 8, padding: "10px 0", fontFamily: "inherit", fontSize: 14.5, fontWeight: 500, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.65 : 1, marginTop: 2 }}
         >
           {loading && <Spinner size="sm" />}
           Sign in
         </button>
       </form>
-      <div className="mt-5 space-y-2 text-center text-sm text-gray-500">
-        <p>
-          <Link href="/forgot-password" className="text-[#22c55e] hover:underline">
-            Forgot password?
-          </Link>
-        </p>
-        <p>
-          No account?{" "}
-          <Link href="/register" className="text-[#22c55e] hover:underline">
-            Sign up free
-          </Link>
-        </p>
+
+      <div style={{ marginTop: 20, textAlign: "center", fontSize: 13.5, color: "var(--ink-muted)", display: "flex", flexDirection: "column", gap: 6 }}>
+        <Link href="/forgot-password" style={{ color: "var(--fin)", textDecoration: "none" }}>Forgot password?</Link>
+        <span>No account? <Link href="/register" style={{ color: "var(--fin)", textDecoration: "none", fontWeight: 500 }}>Sign up free</Link></span>
       </div>
     </div>
   )

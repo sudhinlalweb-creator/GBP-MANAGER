@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     frontend_url: str | None = Field(default=None, alias="FRONTEND_URL")
     api_base_url: str = Field(default="http://localhost:8000", alias="API_BASE_URL")
     secret_key: str
+    # Fernet key for field-level encryption of sensitive DB columns (OAuth tokens, etc.)
+    # Generate: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    field_encryption_key: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
@@ -53,6 +56,8 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     google_api_key: str | None = None
     sentry_dsn: str | None = None
+    resend_api_key: str | None = None
+    email_from_address: str = "GBP Manager <noreply@yourdomain.com>"
     cors_allow_origins_raw: str = Field(
         default=(
             "http://localhost:3000,"
