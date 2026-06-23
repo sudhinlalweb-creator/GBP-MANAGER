@@ -15,7 +15,7 @@ export function RankTracker() {
   const [scanning, setScanning] = useState(false)
   const keywordRef = useRef<HTMLInputElement>(null)
   const dotsRef = useRef<Dot[]>([])
-  const gridRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<HTMLDivElement | null>(null)
 
   const buildGrid = useCallback((initial = false) => {
     const wrap = gridRef.current

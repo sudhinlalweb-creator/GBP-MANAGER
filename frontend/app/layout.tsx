@@ -3,7 +3,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { Providers } from "@/components/providers";
 import { appConfig } from "@/lib/env";
 
 export const metadata: Metadata = {
@@ -18,9 +17,7 @@ type RootLayoutProps = {
 export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
   return (
     <html lang="en">
-      <body>
-        <Providers>{children}</Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

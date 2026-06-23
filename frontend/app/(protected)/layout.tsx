@@ -2,11 +2,20 @@
 
 import { useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import { Providers } from "@/components/providers"
 import { useAuth } from "@/contexts/auth-context"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Spinner } from "@/components/ui/spinner"
 
 export default function ProtectedLayout({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <Providers>
+      <ProtectedLayoutContent>{children}</ProtectedLayoutContent>
+    </Providers>
+  )
+}
+
+function ProtectedLayoutContent({ children }: { children: ReactNode }): JSX.Element {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [theme, setTheme] = useState<"light" | "dark">("light")
