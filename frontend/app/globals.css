@@ -256,6 +256,26 @@ html, body {
   }
 }
 
+/* How it works — responsive */
+.how-desktop { display: block; }
+.how-mobile { display: none; }
+
+/* Results stats grid */
+.results-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 860px) {
+  .how-desktop { display: none; }
+  .how-mobile { display: flex !important; }
+
+  .results-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* Sticky mobile CTA bar */
 .landing-sticky-cta {
   display: none;
