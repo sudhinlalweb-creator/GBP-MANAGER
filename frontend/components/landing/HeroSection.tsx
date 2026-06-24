@@ -55,10 +55,10 @@ function AuditCard() {
             <circle ref={gaugeRef} cx="100" cy="100" r="80" fill="none" stroke="#0bdf50" strokeWidth="15" strokeLinecap="round" strokeDasharray="377 503" strokeDashoffset={377} transform="rotate(135 100 100)" style={{ transition: "none" }} />
           </svg>
           <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ fontSize: 38, fontWeight: 600, letterSpacing: "-1.5px", lineHeight: 1 }}>
-              <span ref={numRef}>0</span><span style={{ fontSize: 17, color: "#9c9fa5", fontWeight: 500 }}>/100</span>
+            <div style={{ fontSize: 34, fontWeight: 600, letterSpacing: "-1.5px", lineHeight: 1 }}>
+              <span ref={numRef}>0</span><span style={{ fontSize: 15, color: "#9c9fa5", fontWeight: 500 }}>/100</span>
             </div>
-            <div ref={labelRef} style={{ fontSize: 11.5, fontWeight: 600, color: "#9c9fa5", marginTop: 3, letterSpacing: ".3px" }}>SCANNING</div>
+            <div ref={labelRef} style={{ fontSize: 11, fontWeight: 600, color: "#9c9fa5", marginTop: 3, letterSpacing: ".3px" }}>SCANNING</div>
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 13 }}>
@@ -109,28 +109,36 @@ export function HeroSection() {
     <section className="landing-section landing-hero" style={{ paddingBottom: 56 }}>
       <div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #d3cec6", borderRadius: 9999, padding: "6px 14px", fontSize: 13, fontWeight: 500, color: "#626260", marginBottom: 24 }}>
-          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#0bdf50", display: "inline-block" }} />
+          <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#0bdf50", display: "inline-block", animation: "pinly-pulse 2s infinite" }} />
           Trusted by 2,400+ local businesses across India
         </div>
-        <h1 style={{ fontSize: "clamp(40px,5vw,60px)", lineHeight: 1.04, letterSpacing: "-2px", fontWeight: 600, maxWidth: 620 }}>
+        <h1 style={{ fontSize: "clamp(34px,5vw,60px)", lineHeight: 1.06, letterSpacing: "-1.5px", fontWeight: 600, maxWidth: 620, margin: "0 0 20px" }}>
           Your competitors are ranking on Google Maps.{" "}
           <span style={{ color: "#626260" }}>You should be too.</span>
         </h1>
-        <p style={{ fontSize: 19, lineHeight: 1.5, color: "#626260", marginTop: 24, maxWidth: 520, letterSpacing: "-.1px" }}>
+        <p style={{ fontSize: "clamp(16px,2vw,19px)", lineHeight: 1.55, color: "#626260", margin: "0 0 28px", maxWidth: 520, letterSpacing: "-.1px" }}>
           Pinly audits, optimizes, and auto-manages your Google Business Profile so you show up first — for every local search that matters.
         </p>
-        <div style={{ display: "flex", gap: 12, marginTop: 34, flexWrap: "wrap" }}>
-          <Link href="/login" style={{ background: "#111", color: "#fff", fontSize: 15, fontWeight: 500, padding: "13px 22px", borderRadius: 8, textDecoration: "none" }}>
-            Start Free Trial
+        <div className="landing-hero-cta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link href="/login" style={{ background: "#111", color: "#fff", fontSize: 16, fontWeight: 600, padding: "15px 24px", borderRadius: 10, textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 52 }}>
+            Start Free — 14 Days
           </Link>
-          <a href="#how" style={{ background: "#fff", color: "#111", fontSize: 15, fontWeight: 500, padding: "13px 22px", borderRadius: 8, border: "1px solid #d3cec6", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <a href="#how" style={{ background: "#fff", color: "#111", fontSize: 15, fontWeight: 500, padding: "15px 22px", borderRadius: 10, border: "1px solid #d3cec6", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 52 }}>
             See how it works
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </a>
         </div>
-        <div style={{ marginTop: 30, display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, color: "#7b7b78", flexWrap: "wrap" }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0bdf50" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          No credit card required · Setup in 3 minutes
+        <div className="landing-hero-badges" style={{ marginTop: 22, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          {[
+            "No credit card required",
+            "Setup in 3 minutes",
+            "Cancel anytime",
+          ].map((text) => (
+            <div key={text} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#7b7b78" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0bdf50" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+              {text}
+            </div>
+          ))}
         </div>
       </div>
       <AuditCard />

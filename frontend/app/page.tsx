@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { LandingNav } from "@/components/landing/LandingNav"
 import { HeroSection } from "@/components/landing/HeroSection"
 import { SocialProofBar } from "@/components/landing/SocialProofBar"
@@ -12,7 +13,7 @@ import { CtaFooter } from "@/components/landing/CtaFooter"
 
 export default function HomePage() {
   return (
-    <div style={{ background: "#f5f1ec", color: "#111", overflowX: "hidden", minHeight: "100vh", fontFamily: "'Inter', ui-sans-serif, system-ui" }}>
+    <div className="landing-page-wrapper" style={{ background: "#f5f1ec", color: "#111", overflowX: "hidden", minHeight: "100vh", fontFamily: "'Inter', ui-sans-serif, system-ui" }}>
       <LandingNav />
       <span id="top" />
       <HeroSection />
@@ -25,6 +26,18 @@ export default function HomePage() {
       <PricingSection />
       <FaqSection />
       <CtaFooter />
+
+      {/* Sticky mobile CTA */}
+      <div className="landing-sticky-cta">
+        <Link href="/login"
+          style={{ flex: 1, background: "#111", color: "#fff", fontSize: 15, fontWeight: 600, padding: "14px", borderRadius: 10, textDecoration: "none", textAlign: "center", display: "block" }}>
+          Start Free — 14 Days
+        </Link>
+        <Link href="/login"
+          style={{ flexShrink: 0, background: "#fff", color: "#111", fontSize: 14, fontWeight: 500, padding: "14px 18px", borderRadius: 10, textDecoration: "none", border: "1px solid #d3cec6", display: "block" }}>
+          Log in
+        </Link>
+      </div>
     </div>
   )
 }
